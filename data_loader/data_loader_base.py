@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
+import numpy as np
+import cv2
 import torch.utils.data as data
 
 
@@ -11,19 +13,19 @@ class BaseDataset(data.Dataset):
         assert(os.path.isdir(data_path))
         self._data_path = data_path
 
-        self._image_path = []
-        self._gt_path = []
+        self._image_paths = []
+        self._gt_paths = []
 
         self._classes = classes
         self._colors = colors
-        self._legend = BaseDataset.show_color_chart(self.classes, self.__colors)
+        self._legend = BaseDataset.show_color_chart(self.classes, self._colors)
 
     def __len__(self):
-        return len(self._image_path)
+        return len(self._image_paths)
 
     def __getitem__(self, idx):
-        image = self._image_path[idx]
-        gt = self._gt_path[idx]
+        image = cv2.imread(self._image_paths[idx])
+        gt = cv2.imread(self._gt_paths[idx], 0)
 
         return image, gt
 
@@ -39,10 +41,28 @@ class BaseDataset(data.Dataset):
     def classes(self):
         return self._classes
 
-    def get_overlay_image(self, idx):
+    @property
+    def num_classes(self):
+        return len(self._classes)
+
+    def get_overlay_image(self, idx, alpha=0.7):
         image, label = self.__getitem__(idx)
-        mask = self._colors[label]
-        overlay = ((0.3 * image) + (0.7 * mask)).astype("uint8")
+        mask = np.array(self._colors)[label]
+        overlay = (((1 - alpha) * image) + (alpha * mask)).astype("uint8")
+
+        return overlay
+
+    def class_distribution(self):
+        assert self.__len__() > 0
+        class_dist_dict = dict((el, 0) for el in self._classes)
+        class_idx_dict = BaseDataset.class_to_class_idx_dict(self._classes)
+
+        for idx in range(self.__len__()):
+            _, gt = self.__getitem__(idx)
+            for class_name in self._classes:
+                class_dist_dict[class_name] += np.count_nonzero(gt == class_idx_dict[class_name])
+
+        return class_dist_dict
 
     @staticmethod
     def show_color_chart(classes, colors):
@@ -52,4 +72,31 @@ class BaseDataset(data.Dataset):
             cv2.putText(legend, class_name, (5, (i * 25) + 17), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
             cv2.rectangle(legend, (100, (i * 25)), (300, (i * 25) + 25), tuple(color), -1)
 
-        return
+        return legend
+
+    @staticmethod
+    def class_to_class_idx_dict(classes):
+        class_idx_dict = {}
+
+        for i, class_name in enumerate(classes):
+            class_idx_dict[class_name] = i
+
+        return class_idx_dict
+
+    @staticmethod
+    def color_to_color_idx_dict(colors):
+        color_idx_dict = {}
+
+        for i, color in enumerate(colors):
+            color_idx_dict[color] = i
+
+        return color_idx_dict
+
+    @staticmethod
+    def human_sort(s):
+        """Sort list the way humans do
+        """
+        import re
+        pattern = r"([0-9]+)"
+        return [int(c) if c.isdigit() else c.lower()
+                for c in re.split(pattern, s)]
