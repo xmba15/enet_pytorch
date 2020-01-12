@@ -7,97 +7,48 @@ import numpy as np
 from .data_loader_base import BaseDataset
 
 _CAMVID_CLASSES = [
-    "Animal",
-    "Archway",
     "Bicyclist",
-    "Bridge",
     "Building",
     "Car",
-    "CartLuggagePram",
-    "Child",
-    "Column_Pole",
     "Fence",
-    "LaneMkgsDriv",
-    "LaneMkgsNonDriv",
-    "Misc_Text",
-    "MotorcycleScooter",
-    "OtherMoving",
-    "ParkingBlock",
+    'Pavement',
     "Pedestrian",
+    "Pole",
     "Road",
-    "RoadShoulder",
-    "Sidewalk",
-    "SignSymbol",
+    'SignSymbol',
     "Sky",
-    "SUVPickupTruck",
-    "TrafficCone",
-    "TrafficLight",
-    "Train",
     "Tree",
-    "Truck_Bus",
-    "Tunnel",
-    "VegetationMisc",
     "Void",
-    "Wall",
 ]
 
 _CAMVID_COLORS = [
-    (64, 128, 64),
-    (192, 0, 128),
     (0, 128, 192),
-    (0, 128, 64),
     (128, 0, 0),
     (64, 0, 128),
-    (64, 0, 192),
-    (192, 128, 64),
-    (192, 192, 128),
     (64, 64, 128),
-    (128, 0, 192),
-    (192, 0, 64),
-    (128, 128, 64),
-    (192, 0, 192),
-    (128, 64, 64),
-    (64, 192, 128),
+    (60, 40, 222),
     (64, 64, 0),
+    (192, 192, 128),
     (128, 64, 128),
-    (128, 128, 192),
-    (0, 0, 192),
     (192, 128, 128),
     (128, 128, 128),
-    (64, 128, 192),
-    (0, 0, 64),
-    (0, 64, 64),
-    (192, 64, 128),
     (128, 128, 0),
-    (192, 128, 192),
-    (64, 0, 64),
-    (192, 192, 0),
-    (0, 0, 0),
-    (64, 192, 0),
+    (0, 0, 0)
 ]
 
 
 class CamvidDataset(BaseDataset):
-    def __init__(self, data_path):
-        super(CamvidDataset, self).__init__(data_path, _CAMVID_CLASSES, _CAMVID_COLORS)
-        _camvid_data_path = os.path.join(self._data_path, "camvid")
+    def __init__(self, data_path, phase="test", transform=None):
+        super(CamvidDataset, self).__init__(data_path, phase=phase,
+                                            classes=_CAMVID_CLASSES, colors=_CAMVID_COLORS, transform=transform)
 
-        _all_images = glob.glob(os.path.join(_camvid_data_path, "*.png"))
-        _all_images.sort(key=BaseDataset.human_sort)
+        _camvid_data_path = os.path.join(self._data_path, "CamVid")
+        _image_data_paths = os.path.join(_camvid_data_path, phase)
+        _gt_data_paths = os.path.join(_camvid_data_path, "{}annot".format(phase))
 
-        self._gt_paths = [img_path for img_path in _all_images if img_path.endswith("_L.png")]
-        self._image_paths = [img_path for img_path in _all_images if img_path not in self._gt_paths]
+        self._image_paths = glob.glob(os.path.join(_image_data_paths, "*.png"))
+        self._gt_paths = glob.glob(os.path.join(_gt_data_paths, "*.png"))
+        self._image_paths.sort(key=BaseDataset.human_sort)
+        self._gt_paths.sort(key=BaseDataset.human_sort)
 
         self._color_idx_dict = BaseDataset.color_to_color_idx_dict(self._colors)
-
-    def __getitem__(self, idx):
-        image = cv2.imread(self._image_paths[idx])
-        rgb_gt = cv2.imread(self._gt_paths[idx])
-        rgb_gt = rgb_gt[:, :, [2, 1, 0]]
-
-        gt = np.zeros(rgb_gt.shape[:2], dtype=np.int)
-
-        for color in self._colors:
-            gt[(rgb_gt == color).all(axis=2)] = self._color_idx_dict[color]
-
-        return image, gt

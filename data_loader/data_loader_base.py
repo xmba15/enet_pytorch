@@ -7,7 +7,7 @@ import torch.utils.data as data
 
 
 class BaseDataset(data.Dataset):
-    def __init__(self, data_path, classes, colors):
+    def __init__(self, data_path, classes, colors, phase, transform):
         super(BaseDataset, self).__init__()
 
         assert(os.path.isdir(data_path))
@@ -20,12 +20,25 @@ class BaseDataset(data.Dataset):
         self._colors = colors
         self._legend = BaseDataset.show_color_chart(self.classes, self._colors)
 
+        assert phase in ("train", "val", "test")
+        self._phase = phase
+
+        self._transform = transform
+
     def __len__(self):
         return len(self._image_paths)
 
     def __getitem__(self, idx):
+        image, gt = self._pull_item(idx)
+
+        return image, gt
+
+    def _pull_item(self, idx):
         image = cv2.imread(self._image_paths[idx])
         gt = cv2.imread(self._gt_paths[idx], 0)
+
+        if self._transform is not None:
+            image, gt = self._transform(self._phase, image, gt)
 
         return image, gt
 
