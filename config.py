@@ -12,6 +12,10 @@ class Config(object):
 
         self.DATA_PATH = os.path.abspath(os.path.join(_CURRENT_DIR, "data"))
 
+        self.SAVED_MODEL_PATH = os.path.abspath(os.path.join(_CURRENT_DIR, "saved_models"))
+        if not os.path.isdir(self.SAVED_MODEL_PATH):
+            os.system("mkdir -p {}".format(self.SAVED_MODEL_PATH))
+
     def display(self):
         """
         Display Configuration values.
