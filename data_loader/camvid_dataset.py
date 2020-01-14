@@ -11,11 +11,11 @@ _CAMVID_CLASSES = [
     "Building",
     "Car",
     "Fence",
-    'Pavement',
+    "Pavement",
     "Pedestrian",
     "Pole",
     "Road",
-    'SignSymbol',
+    "SignSymbol",
     "Sky",
     "Tree",
     "Void",
@@ -33,14 +33,15 @@ _CAMVID_COLORS = [
     (192, 128, 128),
     (128, 128, 128),
     (128, 128, 0),
-    (0, 0, 0)
+    (0, 0, 0),
 ]
 
 
 class CamvidDataset(BaseDataset):
     def __init__(self, data_path, phase="test", transform=None):
-        super(CamvidDataset, self).__init__(data_path, phase=phase,
-                                            classes=_CAMVID_CLASSES, colors=_CAMVID_COLORS, transform=transform)
+        super(CamvidDataset, self).__init__(
+            data_path, phase=phase, classes=_CAMVID_CLASSES, colors=_CAMVID_COLORS, transform=transform
+        )
 
         _camvid_data_path = os.path.join(self._data_path, "CamVid")
         _image_data_paths = os.path.join(_camvid_data_path, phase)

@@ -238,17 +238,20 @@ class Encoder(nn.Module):
         ])
         # fmt: on
 
+    @property
+    def layers_dict(self):
+        return self._layers_dict
+
     def forward(self, x):
         output = x
         pooling_stack = []
 
-        for key, layer in self._layers_dict.items():
-            print(key)
+        for key, layer in self._layers_dict:
             if hasattr(layer, "downsampling") and layer.downsampling:
-                output, pooling_indices = layer(output)
+                output, pooling_indices = self._layers_dict[key](output)
                 pooling_stack.append(pooling_indices)
             else:
-                output = layer(output)
+                output = self._layers_dict[key](output)
 
         if self._encoder_only:
             output = F.upsample(output, self._img_size, None, "bilinear")
@@ -275,15 +278,19 @@ class Decoder(nn.Module):
         ])
         # fmt: on
 
+    @property
+    def layers_dict(self):
+        return self._layers_dict
+
     def forward(self, x, pooling_stack):
         output = x
 
-        for _, layer in self._layers_dict.items():
+        for key, layer in self._layers_dict.items():
             if hasattr(layer, "upsampling") and layer.upsampling:
                 pooling_indices = pooling_stack.pop()
-                output = layer(output, pooling_indices)
+                output = self._layers_dict[key](output, pooling_indices)
             else:
-                output = layer(output)
+                output = self._layers_dict[key](output)
 
         return output
 
@@ -298,6 +305,14 @@ class Enet(nn.Module):
 
         self._encoder = Encoder(self._num_classes, self._img_size, self._encoder_only)
         self._decoder = Decoder(self._num_classes, img_size)
+
+    @property
+    def encoder(self):
+        return self._encoder
+
+    @property
+    def decoder(self):
+        return self._decoder
 
     def forward(self, x):
         output = x

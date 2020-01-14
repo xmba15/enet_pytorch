@@ -10,7 +10,7 @@ class BaseDataset(data.Dataset):
     def __init__(self, data_path, classes, colors, phase, transform):
         super(BaseDataset, self).__init__()
 
-        assert(os.path.isdir(data_path))
+        assert os.path.isdir(data_path)
         self._data_path = data_path
 
         self._image_paths = []
@@ -82,7 +82,6 @@ class BaseDataset(data.Dataset):
         total_pixels = np.sum(list(class_dist_dict.values()))
         class_idx_dict = BaseDataset.class_to_class_idx_dict(self._classes)
 
-
         weighted = np.zeros(self.num_classes, dtype=np.float64)
         for key, value in class_dist_dict.items():
             class_dist_dict[key] = 1 / np.log(value * 1.0 / total_pixels + 1.02)
@@ -123,6 +122,6 @@ class BaseDataset(data.Dataset):
         """Sort list the way humans do
         """
         import re
+
         pattern = r"([0-9]+)"
-        return [int(c) if c.isdigit() else c.lower()
-                for c in re.split(pattern, s)]
+        return [int(c) if c.isdigit() else c.lower() for c in re.split(pattern, s)]
