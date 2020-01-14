@@ -77,6 +77,19 @@ class BaseDataset(data.Dataset):
 
         return class_dist_dict
 
+    def weighted_class(self):
+        class_dist_dict = self.class_distribution()
+        total_pixels = np.sum(list(class_dist_dict.values()))
+        class_idx_dict = BaseDataset.class_to_class_idx_dict(self._classes)
+
+
+        weighted = np.zeros(self.num_classes, dtype=np.float64)
+        for key, value in class_dist_dict.items():
+            class_dist_dict[key] = 1 / np.log(value * 1.0 / total_pixels + 1.02)
+            weighted[class_idx_dict[key]] = 1 / np.log(value * 1.0 / total_pixels + 1.02)
+
+        return weighted
+
     @staticmethod
     def show_color_chart(classes, colors):
         legend = np.zeros(((len(classes) * 25) + 25, 300, 3), dtype="uint8")
