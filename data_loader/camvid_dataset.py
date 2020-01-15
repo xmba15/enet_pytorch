@@ -7,8 +7,9 @@ import numpy as np
 from .data_loader_base import BaseDataset
 
 
-class CamVidDatasetConfig:
+class CamvidDatasetConfig:
     CAMVID_CLASSES = [
+        "Void",
         "Bicyclist",
         "Building",
         "Car",
@@ -20,10 +21,10 @@ class CamVidDatasetConfig:
         "SignSymbol",
         "Sky",
         "Tree",
-        "Void",
     ]
 
     CAMVID_COLORS = [
+        (0, 0, 0),
         (0, 128, 192),
         (128, 0, 0),
         (64, 0, 128),
@@ -35,8 +36,11 @@ class CamVidDatasetConfig:
         (192, 128, 128),
         (128, 128, 128),
         (128, 128, 0),
-        (0, 0, 0),
     ]
+
+    @property
+    def num_classes(self):
+        return len(self.CAMVID_CLASSES)
 
 
 class CamvidDataset(BaseDataset):
@@ -44,8 +48,8 @@ class CamvidDataset(BaseDataset):
         super(CamvidDataset, self).__init__(
             data_path,
             phase=phase,
-            classes=CamVidDatasetConfig.CAMVID_CLASSES,
-            colors=CamVidDatasetConfig.CAMVID_COLORS,
+            classes=CamvidDatasetConfig.CAMVID_CLASSES,
+            colors=CamvidDatasetConfig.CAMVID_COLORS,
             transform=transform,
         )
 

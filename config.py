@@ -16,6 +16,12 @@ class Config(object):
         if not os.path.isdir(self.SAVED_MODEL_PATH):
             os.system("mkdir -p {}".format(self.SAVED_MODEL_PATH))
 
+        self.BATCH_SIZE = 20
+
+        self.IMG_SIZE = (360, 480)
+
+        self.NUM_EPOCHS = 50
+
     def display(self):
         """
         Display Configuration values.

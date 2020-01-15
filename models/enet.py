@@ -62,6 +62,7 @@ class BlockBase(nn.Module):
 class InitialBlock(BlockBase):
     def __init__(self, use_relu=False, use_bias=False):
         super(InitialBlock, self).__init__(use_relu=use_relu, use_bias=use_bias)
+
         self._conv = nn.Conv2d(3, 13, (3, 3), stride=2, padding=1)
         self._batch_norm = nn.BatchNorm2d(13, 1e-3)
         self._activation = self._block_activation_func(channels=13)
@@ -169,8 +170,11 @@ class BottleNeck(BlockBase):
             )
         )
 
+        self._activation = self._block_activation_func(channels=self._output_channels)
+
     def forward(self, x, pooling_indices=None):
         pooling_branch_output = x
+
         batch_size, _, height, width = x.size()
 
         if self._downsampling:
@@ -188,11 +192,12 @@ class BottleNeck(BlockBase):
                     pad = pad.cuda(0)
 
                 pooling_branch_output = torch.cat((pooling_branch_output, pad), 1)
+
         elif self._upsampling:
             pooling_branch_output = self._unpool(self._conv_before_unpool(pooling_branch_output), pooling_indices)
 
         output = pooling_branch_output + self._convolution_branch(x)
-        output = self._block_activation_func(channels=self._output_channels)(output)
+        output = self._activation(output)
 
         if self._downsampling:
             return output, indices
@@ -210,7 +215,7 @@ class Encoder(nn.Module):
         self._encoder_only = encoder_only
 
         # fmt: off
-        self._layers_dict = OrderedDict([
+        self._layers_dict = nn.ModuleDict([
             ("initial", InitialBlock()),
             ("bottleneck_1_0", BottleNeck(16, 64, regularlizer_prob=0.01, downsampling=True)),
             ("bottleneck_1_1", BottleNeck(64, 64, regularlizer_prob=0.01)),
@@ -246,7 +251,7 @@ class Encoder(nn.Module):
         output = x
         pooling_stack = []
 
-        for key, layer in self._layers_dict:
+        for key, layer in self._layers_dict.items():
             if hasattr(layer, "downsampling") and layer.downsampling:
                 output, pooling_indices = self._layers_dict[key](output)
                 pooling_stack.append(pooling_indices)
@@ -254,7 +259,7 @@ class Encoder(nn.Module):
                 output = self._layers_dict[key](output)
 
         if self._encoder_only:
-            output = F.upsample(output, self._img_size, None, "bilinear")
+            output = F.interpolate(output, self._img_size, None, mode="bilinear", align_corners=True)
 
         return output, pooling_stack
 
@@ -268,7 +273,7 @@ class Decoder(nn.Module):
         self._img_size = img_size
 
         # fmt: off
-        self._layers_dict = OrderedDict([
+        self._layers_dict = nn.ModuleDict([
             ("bottleneck_4_0", BottleNeck(128, 64, upsampling=True, use_relu=True)),
             ("bottleneck_4_1", BottleNeck(64, 64, use_relu=True)),
             ("bottleneck_4_2", BottleNeck(64, 64, use_relu=True)),
@@ -316,6 +321,7 @@ class Enet(nn.Module):
 
     def forward(self, x):
         output = x
+
         output, pooling_stack = self._encoder(output)
 
         if not self._encoder_only:

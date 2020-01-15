@@ -38,7 +38,7 @@ class BaseDataset(data.Dataset):
         gt = cv2.imread(self._gt_paths[idx], 0)
 
         if self._transform is not None:
-            image, gt = self._transform(self._phase, image, gt)
+            image, gt = self._transform(image, gt, self._phase)
 
         return image, gt
 

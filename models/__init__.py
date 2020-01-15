@@ -2,4 +2,4 @@
 # -*- coding: utf-8 -*-
 from .enet import Enet
 from .loss import EnetLoss
-from .metric import accuracy
+from .metric import mean_iu_acc

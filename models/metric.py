@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 
-def accuracy(output, target, num_classes, epsilon=1e-9):
+def mean_iu_acc(output, target, num_classes, epsilon=1e-9):
     # mean_iu
     import numpy as np
 
