@@ -58,8 +58,11 @@ class BaseDataset(data.Dataset):
     def num_classes(self):
         return len(self._classes)
 
-    def get_overlay_image(self, idx, alpha=0.7):
-        image, label = self.__getitem__(idx)
+    def get_overlay_image(self, idx=None, image=None, label=None, alpha=0.7):
+        if image is None or label is None:
+            assert idx is not None and idx < self.__len__()
+            image, label = self.__getitem__(idx)
+
         mask = np.array(self._colors)[label]
         overlay = (((1 - alpha) * image) + (alpha * mask)).astype("uint8")
 

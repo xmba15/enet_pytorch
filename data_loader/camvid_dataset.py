@@ -9,33 +9,33 @@ from .data_loader_base import BaseDataset
 
 class CamvidDatasetConfig:
     CAMVID_CLASSES = [
-        "Void",
-        "Bicyclist",
-        "Building",
-        "Car",
-        "Fence",
-        "Pavement",
-        "Pedestrian",
-        "Pole",
-        "Road",
-        "SignSymbol",
-        "Sky",
-        "Tree",
+        'Sky',
+        'Building',
+        'Pole',
+        'Road',
+        'Pavement',
+        'Tree',
+        'SignSymbol',
+        'Fence',
+        'Car',
+        'Pedestrian',
+        'Bicyclist',
+        "Void"
     ]
 
     CAMVID_COLORS = [
-        (0, 0, 0),
-        (0, 128, 192),
-        (128, 0, 0),
-        (64, 0, 128),
-        (64, 64, 128),
-        (60, 40, 222),
-        (64, 64, 0),
-        (192, 192, 128),
-        (128, 64, 128),
-        (192, 128, 128),
         (128, 128, 128),
-        (128, 128, 0),
+        (0, 0, 128),
+        (128, 192, 192),
+        (128, 64, 128),
+        (222, 40, 60),
+        (0, 128, 128),
+        (128, 128, 192),
+        (128, 64, 64),
+        (128, 0, 64),
+        (0, 64, 64),
+        (192, 128, 0),
+        (0, 0, 0),
     ]
 
     @property
