@@ -22,6 +22,7 @@ def train_model(net, data_loaders_dict, criterion, optimizer, num_epochs, schedu
     torch.backends.cudnn.benchmark = True
 
     num_train_imgs = len(data_loaders_dict["train"].dataset)
+    print("number of train images: {}".format(num_train_imgs))
     num_val_imgs = len(data_loaders_dict["val"].dataset)
     batch_size = data_loaders_dict["train"].batch_size
 

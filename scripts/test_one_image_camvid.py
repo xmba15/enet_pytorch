@@ -22,6 +22,7 @@ except Exception as e:
 parser = argparse.ArgumentParser()
 parser.add_argument("--image_path", required=True)
 parser.add_argument("--model_path", required=True)
+parser.add_argument("--overlay_ratio", type=float, default=0.7)
 parsed_args = parser.parse_args()
 
 
@@ -46,7 +47,7 @@ def main(args):
     mask = output.data.max(1)[1].cpu().numpy().reshape(360, 480)
 
     color_mask = np.array(colors)[mask]
-    alpha = 0.7
+    alpha = args.overlay_ratio
     overlay = (((1 - alpha) * img2) + (alpha * color_mask)).astype("uint8")
     cv2.imwrite("overlay.png", overlay)
 
