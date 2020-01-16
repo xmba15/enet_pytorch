@@ -52,5 +52,5 @@ def main(args):
     cv2.imwrite("overlay.png", overlay)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main(args=parsed_args)

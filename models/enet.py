@@ -50,6 +50,10 @@ class BlockBase(nn.Module):
     def downsampling(self):
         return self._downsampling
 
+    @property
+    def upsampling(self):
+        return self._upsampling
+
     def _activation_func(self, channels, use_relu):
         return nn.PReLU(channels) if not use_relu else nn.ReLU()
 
@@ -106,7 +110,7 @@ class BottleNeck(BlockBase):
         # fmt: off
         self._block1x1_1 = nn.Sequential(OrderedDict([
             ("conv1", nn.Conv2d(self._input_channels, self._reduced_channels,
-                            self._input_stride, self._input_stride, bias=self._use_bias)),
+                                self._input_stride, self._input_stride, bias=self._use_bias)),
             ("batch_norm", nn.BatchNorm2d(self._reduced_channels, 1e-3)),
             ("block_activation", self._block_activation_func(self._reduced_channels))
         ]))
@@ -136,7 +140,7 @@ class BottleNeck(BlockBase):
             # fmt: off
             conv = nn.Sequential(OrderedDict([
                 ("conv1", nn.Conv2d(self._reduced_channels, self._reduced_channels, [5, 1], padding=(2, 0),
-                                   bias=self._use_bias)),
+                                    bias=self._use_bias)),
                 ("conv2", nn.Conv2d(self._reduced_channels, self._reduced_channels, [1, 5], padding=(0, 2)))
             ]))
             # fmt: on
@@ -215,7 +219,7 @@ class Encoder(nn.Module):
         self._encoder_only = encoder_only
 
         # fmt: off
-        self._layers_dict = nn.ModuleDict([
+        layers_dict_list = [
             ("initial", InitialBlock()),
             ("bottleneck_1_0", BottleNeck(16, 64, regularlizer_prob=0.01, downsampling=True)),
             ("bottleneck_1_1", BottleNeck(64, 64, regularlizer_prob=0.01)),
@@ -239,13 +243,25 @@ class Encoder(nn.Module):
             ("bottleneck_3_6", BottleNeck(128, 128, dilated=True, dilation_rate=8)),
             ("bottleneck_3_7", BottleNeck(128, 128, asymmetric=True)),
             ("bottleneck_3_8", BottleNeck(128, 128, dilated=True, dilation_rate=16)),
-            ("classifier", nn.Conv2d(128, self._num_classes, 1))
-        ])
+        ]
         # fmt: on
+
+        if self._encoder_only:
+            layers_dict_list.append(("classifier", nn.Conv2d(128, self._num_classes, 1)))
+
+        self._layers_dict = nn.ModuleDict(layers_dict_list)
 
     @property
     def layers_dict(self):
         return self._layers_dict
+
+    @property
+    def encoder_only(self):
+        return self._encoder_only
+
+    @encoder_only.setter
+    def encoder_only(self, flag):
+        self._encoder_only = flag
 
     def forward(self, x):
         output = x
@@ -301,7 +317,7 @@ class Decoder(nn.Module):
 
 
 class Enet(nn.Module):
-    def __init__(self, num_classes, img_size, encoder_only=True):
+    def __init__(self, num_classes, img_size, encoder_only=False):
         super(Enet, self).__init__()
 
         self._num_classes = num_classes
@@ -319,12 +335,24 @@ class Enet(nn.Module):
     def decoder(self):
         return self._decoder
 
+    @property
+    def encoder_only(self):
+        return self._encoder_only
+
+    def remove_encoder_classifier(self):
+        if self._encoder_only:
+            self._encoder_only = False
+            self._encoder.encoder_only = False
+            self._encoder.layers_dict.pop("classifier")
+
+        for param in self._encoder.parameters():
+            param.requires_grad = False
+
     def forward(self, x):
         output = x
 
         output, pooling_stack = self._encoder(output)
-
         if not self._encoder_only:
-            output = self._decoder(output, pooling_stack)(output)
+            output = self._decoder(output, pooling_stack)
 
         return output
