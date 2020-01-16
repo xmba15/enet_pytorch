@@ -112,6 +112,7 @@ def train_model(net, data_loaders_dict, criterion, optimizer, num_epochs, schedu
         logs.append(log_epoch)
 
     torch.save(net.state_dict(), "saved_models/{}_{}.pth".format(type(net).__name__, epoch + 1))
+    return net
 
 
 def main():
@@ -127,14 +128,30 @@ def main():
     val_data_loader = DataLoader(val_dataset, batch_size=dt_config.BATCH_SIZE)
     data_loaders_dict = {"train": train_data_loader, "val": val_data_loader}
 
-    model = Enet(num_classes=num_classes, img_size=input_size)
-
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    model = Enet(num_classes=num_classes, img_size=input_size, encoder_only=True)
 
     weighted_values = train_dataset.weighted_class()
     criterion = EnetLoss(weighted_values=weighted_values)
 
-    train_model(model, data_loaders_dict, criterion, optimizer, num_epochs=dt_config.NUM_EPOCHS)
+    # encoder only
+    model = train_model(
+        model,
+        data_loaders_dict,
+        criterion,
+        optimizer=optim.Adam(model.parameters(), lr=0.001),
+        num_epochs=dt_config.NUM_EPOCHS,
+    )
+
+    # encoder + decoder
+    model.remove_encoder_classifier()
+
+    model = train_model(
+        model,
+        data_loaders_dict,
+        criterion,
+        optimizer=optim.Adam(model.parameters(), lr=0.001),
+        num_epochs=dt_config.NUM_EPOCHS,
+    )
 
 
 if __name__ == "__main__":
