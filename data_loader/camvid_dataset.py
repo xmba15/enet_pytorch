@@ -63,3 +63,11 @@ class CamvidDataset(BaseDataset):
         self._gt_paths.sort(key=BaseDataset.human_sort)
 
         self._color_idx_dict = BaseDataset.color_to_color_idx_dict(self._colors)
+
+    def weighted_class(self):
+        assert "Void" in self._classes
+        class_idx_dict = BaseDataset.class_to_class_idx_dict(self._classes)
+        weighted = super(CamvidDataset, self).weighted_class()
+        weighted[class_idx_dict["Void"]] = 0
+
+        return weighted

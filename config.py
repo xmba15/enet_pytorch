@@ -20,7 +20,7 @@ class Config(object):
 
         self.IMG_SIZE = (360, 480)
 
-        self.NUM_EPOCHS = 100
+        self.NUM_EPOCHS = 300
 
     def display(self):
         """

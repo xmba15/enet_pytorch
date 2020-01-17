@@ -42,7 +42,7 @@ class BlockBase(nn.Module):
             self.__dict__["_{}".format(key)] = value
 
         if self._input_channels is not None and self._output_channels is not None:
-            self._reduced_channels = self._input_channels // 4
+            self._reduced_channels = self._output_channels // 4
 
         self._input_stride = 2 if self._downsampling else 1
 
@@ -55,7 +55,7 @@ class BlockBase(nn.Module):
         return self._upsampling
 
     def _activation_func(self, channels, use_relu):
-        return nn.PReLU(channels) if not use_relu else nn.ReLU()
+        return nn.PReLU(num_parameters=channels) if not use_relu else nn.ReLU()
 
     def _block_activation_func(self, channels):
         assert "_use_relu" in self.__dict__
@@ -67,13 +67,15 @@ class InitialBlock(BlockBase):
     def __init__(self, use_relu=False, use_bias=False):
         super(InitialBlock, self).__init__(use_relu=use_relu, use_bias=use_bias)
 
-        self._conv = nn.Conv2d(3, 13, (3, 3), stride=2, padding=1)
-        self._batch_norm = nn.BatchNorm2d(13, 1e-3)
-        self._activation = self._block_activation_func(channels=13)
+        self._conv = nn.Conv2d(3, 13, (3, 3), stride=2, padding=1, bias=self._use_bias)
+        self._batch_norm = nn.BatchNorm2d(num_features=16, eps=1e-3)
+        self._activation = self._block_activation_func(channels=16)
         self._max_pool = nn.MaxPool2d(2, stride=2)
 
     def forward(self, x):
-        output = torch.cat([self._activation(self._batch_norm(self._conv(x))), self._max_pool(x)], 1)
+        output = torch.cat([self._conv(x), self._max_pool(x)], 1)
+        output = self._batch_norm(output)
+        output = self._activation(output)
 
         return output
 
@@ -111,7 +113,7 @@ class BottleNeck(BlockBase):
         self._block1x1_1 = nn.Sequential(OrderedDict([
             ("conv1", nn.Conv2d(self._input_channels, self._reduced_channels,
                                 self._input_stride, self._input_stride, bias=self._use_bias)),
-            ("batch_norm", nn.BatchNorm2d(self._reduced_channels, 1e-3)),
+            ("batch_norm", nn.BatchNorm2d(num_features=self._reduced_channels, eps=1e-3)),
             ("block_activation", self._block_activation_func(self._reduced_channels))
         ]))
         # fmt: on
@@ -121,14 +123,16 @@ class BottleNeck(BlockBase):
         if self._downsampling:
             self._pool = nn.MaxPool2d(2, stride=2, return_indices=True)
         elif self._upsampling:
-            spatial_conv = nn.Conv2d(self._input_channels, self._output_channels, 1, bias=False)
-            batch_norm = nn.BatchNorm2d(self._output_channels, 1e-3)
+            spatial_conv = nn.Conv2d(self._input_channels, self._output_channels, 1, 1, bias=self._use_bias)
+            batch_norm = nn.BatchNorm2d(num_features=self._output_channels, eps=1e-3)
             self._conv_before_unpool = nn.Sequential(spatial_conv, batch_norm)
             self._unpool = nn.MaxUnpool2d(2)
             conv = nn.ConvTranspose2d(
                 self._reduced_channels, self._reduced_channels, 3, stride=2, padding=1, output_padding=1,
             )
         elif self._dilated:
+            assert self._dilation_rate is not None
+
             conv = nn.Conv2d(
                 self._reduced_channels,
                 self._reduced_channels,
@@ -138,25 +142,27 @@ class BottleNeck(BlockBase):
             )
         elif self._asymmetric:
             # fmt: off
+            asymetric_k_size = 5
+            local_pad = (asymetric_k_size - 1) // 2
             conv = nn.Sequential(OrderedDict([
-                ("conv1", nn.Conv2d(self._reduced_channels, self._reduced_channels, [5, 1], padding=(2, 0),
+                ("conv1", nn.Conv2d(self._reduced_channels, self._reduced_channels, [asymetric_k_size, 1], padding=(local_pad, 0),
                                     bias=self._use_bias)),
-                ("conv2", nn.Conv2d(self._reduced_channels, self._reduced_channels, [1, 5], padding=(0, 2)))
+                ("conv2", nn.Conv2d(self._reduced_channels, self._reduced_channels, [1, asymetric_k_size], padding=(0, local_pad)))
             ]))
             # fmt: on
 
         # fmt: off
         self._middle_block = nn.Sequential(OrderedDict([
             ("conv", conv),
-            ("batch_norm", nn.BatchNorm2d(self._reduced_channels, 1e-3)),
+            ("batch_norm", nn.BatchNorm2d(num_features=self._reduced_channels, eps=1e-3)),
             ("block_activation", self._block_activation_func(self._reduced_channels))
         ]))
         # fmt: on
 
         # fmt: off
         self._block1x1_2 = nn.Sequential(OrderedDict([
-            ("conv1x1_2", nn.Conv2d(self._reduced_channels, self._output_channels, 1, bias=self._use_bias)),
-            ("batch_norm2", nn.BatchNorm2d(self._output_channels, 1e-3)),
+            ("conv1x1_2", nn.Conv2d(self._reduced_channels, self._output_channels, 1, 1, bias=self._use_bias)),
+            ("batch_norm2", nn.BatchNorm2d(num_features=self._output_channels, eps=1e-3)),
             ("block_activation2", self._block_activation_func(self._output_channels))
         ]))
         # fmt: on
@@ -273,9 +279,6 @@ class Encoder(nn.Module):
                 pooling_stack.append(pooling_indices)
             else:
                 output = self._layers_dict[key](output)
-
-        if self._encoder_only:
-            output = F.interpolate(output, self._img_size, None, mode="bilinear", align_corners=True)
 
         return output, pooling_stack
 

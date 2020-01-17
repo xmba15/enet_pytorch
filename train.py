@@ -4,6 +4,7 @@ import os
 import math
 from torch.utils.data import DataLoader
 import torch.optim as optim
+import torch.optim.lr_scheduler as lr_scheduler
 import torch
 from config import Config
 from models import Enet, EnetLoss, mean_iu_acc
@@ -65,7 +66,6 @@ def train_model(net, data_loaders_dict, criterion, optimizer, num_epochs, schedu
                 images = images.to(device)
                 anno_class_imges = anno_class_imges.to(device)
 
-                # multiple minibatchでのパラメータの更新
                 if (phase == "train") and (count == 0):
                     optimizer.step()
                     optimizer.zero_grad()
@@ -120,10 +120,10 @@ def main():
     input_size = (360, 480)
 
     num_classes = CamvidDatasetConfig().num_classes
+
     data_transform = CamvidDataTransform(num_classes=num_classes, input_size=input_size)
     train_dataset = CamvidDataset(data_path=dt_config.DATA_PATH, phase="train", transform=data_transform)
     val_dataset = CamvidDataset(data_path=dt_config.DATA_PATH, phase="val", transform=data_transform)
-
     train_data_loader = DataLoader(train_dataset, batch_size=dt_config.BATCH_SIZE, shuffle=True)
     val_data_loader = DataLoader(val_dataset, batch_size=dt_config.BATCH_SIZE)
     data_loaders_dict = {"train": train_data_loader, "val": val_data_loader}
@@ -131,26 +131,23 @@ def main():
     model = Enet(num_classes=num_classes, img_size=input_size, encoder_only=True)
 
     weighted_values = train_dataset.weighted_class()
-    criterion = EnetLoss(weighted_values=weighted_values)
+    criterion = EnetLoss(weighted_values=weighted_values, encoder_only=True)
+    optimizer = optim.Adam(model.parameters(), lr=5e-4, weight_decay=2e-4)
+    scheduler = lr_scheduler.StepLR(optimizer=optimizer, step_size=100, gamma=0.1)
 
     # encoder only
     model = train_model(
-        model,
-        data_loaders_dict,
-        criterion,
-        optimizer=optim.Adam(model.parameters(), lr=0.001),
-        num_epochs=dt_config.NUM_EPOCHS,
+        model, data_loaders_dict, criterion, optimizer=optimizer, num_epochs=dt_config.NUM_EPOCHS, scheduler=scheduler
     )
 
     # encoder + decoder
     model.remove_encoder_classifier()
+    criterion.encoder_only = False
+    optimizer = optim.Adam(model.parameters(), lr=5e-4, weight_decay=2e-4)
+    scheduler = lr_scheduler.StepLR(optimizer=optimizer, step_size=100, gamma=0.1)
 
     model = train_model(
-        model,
-        data_loaders_dict,
-        criterion,
-        optimizer=optim.Adam(model.parameters(), lr=0.001),
-        num_epochs=dt_config.NUM_EPOCHS,
+        model, data_loaders_dict, criterion, optimizer=optimizer, num_epochs=dt_config.NUM_EPOCHS, scheduler=scheduler
     )
 
 

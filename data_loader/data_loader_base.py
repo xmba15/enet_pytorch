@@ -87,7 +87,6 @@ class BaseDataset(data.Dataset):
 
         weighted = np.zeros(self.num_classes, dtype=np.float64)
         for key, value in class_dist_dict.items():
-            class_dist_dict[key] = 1 / np.log(value * 1.0 / total_pixels + 1.02)
             weighted[class_idx_dict[key]] = 1 / np.log(value * 1.0 / total_pixels + 1.02)
 
         return weighted
