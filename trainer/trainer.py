@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
+import torch
+import tqdm
 from .base_trainer import BaseTrainer
 
 
@@ -45,7 +47,7 @@ class Trainer(BaseTrainer):
     def _train_epoch(self, epoch):
         self._model.train()
 
-        for batch_idx, (data, target) in enumerate(self.train_data_loader):
+        for batch_idx, (data, target) in tqdm.tqdm(enumerate(self.train_data_loader)):
             data, target = data.to(self._device), target.to(self._device)
             self._optimizer.zero_grad()
             output = self._model(data)
@@ -68,10 +70,10 @@ class Trainer(BaseTrainer):
         self._model.eval()
 
         with torch.no_grad():
-            for batch_idx, (data, target) in enumerate(self._val_data_loader):
-                data, target = data.to(self.device), target.to(self.device)
+            for batch_idx, (data, target) in enumerate(self.val_data_loader):
+                data, target = data.to(self._device), target.to(self._device)
 
-                output = self.model(data)
-                loss = self.criterion(output, target)
+                output = self._model(data)
+                loss = self._criterion(output, target)
 
         return loss

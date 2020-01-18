@@ -27,12 +27,16 @@ class EnetLoss(nn.Module):
         self._encoder_only = flag
 
     def forward(self, inputs, targets):
+
         if self._encoder_only:
             batch_size, h, w = targets.shape
             targets = torch.unsqueeze(targets, 0)
             targets = targets.type(torch.cuda.FloatTensor)
             targets = F.interpolate(targets, (h // 8, w // 8), None, mode="bilinear", align_corners=True)
             targets = targets.reshape((batch_size, h // 8, w // 8))
+            targets = targets.type(torch.cuda.LongTensor)
+
+        if not self._encoder_only:
             targets = targets.type(torch.cuda.LongTensor)
 
         return self.loss_func(inputs, targets)

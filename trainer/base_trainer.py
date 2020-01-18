@@ -35,6 +35,10 @@ class BaseTrainer:
 
         self._save_period = save_period
 
+    @property
+    def model(self):
+        return self._model
+
     @abstractmethod
     def _train_epoch(self, epoch):
         raise NotImplementedError
@@ -47,12 +51,12 @@ class BaseTrainer:
             "state_dict": self._model.state_dict(),
             "optimizer": self._optimizer.state_dict(),
         }
-        filename = os.path.join(self._checkpoint_dir, "checkpoint-epoch{}.pth".format(epoch))
+        filename = os.path.join(self._checkpoint_dir, "checkpoint_{}_epoch_{}.pth".format(arch, epoch))
         torch.save(state, filename)
 
-        if save_best:
-            best_path = os.path.join(self._checkpoint_dir, "model_best.pth")
-            torch.save(state, best_path)
+        # if save_best:
+        #     best_path = os.path.join(self._checkpoint_dir, "model_best.pth")
+        #     torch.save(state, best_path)
 
     def _resume_checkpoint(self, resume_path):
         resume_path = str(resume_path)
@@ -65,16 +69,19 @@ class BaseTrainer:
         self._optimizer.load_state_dict(checkpoint["optimizer"])
 
     def train(self):
+        print("========================================")
+        print("Start training {}".format(type(self._model).__name__))
+        print("========================================")
         logs = []
         for epoch in range(self._start_epoch, self._num_epochs + 1):
             train_loss, val_loss = self._train_epoch(epoch)
 
-            log_epoch = {"epoch": epoch, "train_loss": train_loss, "val_loss": val_loss}
+            log_epoch = {"epoch": epoch, "train_loss": train_loss.item(), "val_loss": val_loss.item()}
 
-            print(log_epoch)
+            print("epoch: {}, train_loss: {:.4f}, val_loss: {:.4f}".format(epoch, train_loss, val_loss))
             logs.append(log_epoch)
 
-            if epoch % self._save_period == 0:
+            if (epoch + 1) % self._save_period == 0:
                 self._save_checkpoint(epoch, save_best=True)
 
         return logs

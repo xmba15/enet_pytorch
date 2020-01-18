@@ -22,6 +22,8 @@ class Config(object):
 
         self.NUM_EPOCHS = 300
 
+        self.SAVED_PERIOD = 10
+
     def display(self):
         """
         Display Configuration values.
