@@ -1,3 +1,4 @@
 torchvision
 torchsummary
 albumentations==0.4.3
+imageio
