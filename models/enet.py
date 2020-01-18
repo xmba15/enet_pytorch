@@ -147,7 +147,8 @@ class BottleNeck(BlockBase):
             conv = nn.Sequential(OrderedDict([
                 ("conv1", nn.Conv2d(self._reduced_channels, self._reduced_channels, [asymetric_k_size, 1], padding=(local_pad, 0),
                                     bias=self._use_bias)),
-                ("conv2", nn.Conv2d(self._reduced_channels, self._reduced_channels, [1, asymetric_k_size], padding=(0, local_pad)))
+                ("conv2", nn.Conv2d(self._reduced_channels, self._reduced_channels,
+                                    [1, asymetric_k_size], padding=(0, local_pad)))
             ]))
             # fmt: on
 
@@ -347,9 +348,6 @@ class Enet(nn.Module):
             self._encoder_only = False
             self._encoder.encoder_only = False
             self._encoder.layers_dict.pop("classifier")
-
-        for param in self._encoder.parameters():
-            param.requires_grad = False
 
     def forward(self, x):
         output = x

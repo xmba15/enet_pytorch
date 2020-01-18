@@ -1,2 +1,3 @@
+torchvision
 torchsummary
-alumentations
+albumentations==0.4.3

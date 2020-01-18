@@ -31,14 +31,10 @@ class CamvidDataTransform(DataTransformBase):
             Rotate(p=0.5, limit=(-10, 10)),
             GaussNoise(p=0.5),
             RandomBrightnessContrast(p=0.5),
-            RandomShadow(p=0.5),
-            RandomRain(p=0.5),
-            Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225],),
             ToTensor(num_classes=num_classes),
         ]
 
         self._val_transform_list = self._val_transform_list + [
-            Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225],),
             ToTensor(num_classes=num_classes),
         ]
 
